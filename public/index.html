@@ -1,9 +1,21 @@
-<link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js" integrity="sha512-9mpsATI0KClwt+xVZfbcf2lJ8IFBAwsubJ6mI3rtULwyM3fBmQFzj0It4tGqxLOGQwGfJdk/G+fANnxfq9/cew==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.27.2/axios.min.js"></script>
-<script src="https://unpkg.com/vue@3"></script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"
+      integrity="sha512-9mpsATI0KClwt+xVZfbcf2lJ8IFBAwsubJ6mI3rtULwyM3fBmQFzj0It4tGqxLOGQwGfJdk/G+fANnxfq9/cew=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.27.2/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@3"></script>
+  </head>
 
-<body>
+  <body>
     <main class="container" id="app">
       <article class="grid" v-if="layout == 'login'">
         <div>
@@ -12,24 +24,57 @@
             <h2>A minimalist layout for Login pages</h2>
           </hgroup>
           <form @submit.prevent="login">
-            <input type="text" name="login" placeholder="Login" aria-label="Login" autocomplete="nickname" required v-model="email">
-            <input type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required v-model="password">
+            <input
+              type="text"
+              name="login"
+              placeholder="Login"
+              aria-label="Login"
+              autocomplete="nickname"
+              required
+              v-model="email"
+            />
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              aria-label="Password"
+              autocomplete="current-password"
+              required
+              v-model="password"
+            />
             <button class="contrast">Login</button>
           </form>
         </div>
-        <div>
-
-        </div>
+        <div></div>
       </article>
       <article v-else>
         <h1>Créer un utilisateur</h1>
-        <form @submit.prevent="create">
-          <input type="text" placeholder="Name" required v-model="newUser.name">
-          <input type="text" placeholder="Email" required v-model="newUser.email">
-          <input type="text" placeholder="Password" required v-model="newUser.password">
+        <form @submit.prevent="createUser">
+          <input
+            type="text"
+            placeholder="Name"
+            required
+            v-model="newUser.name"
+          />
+          <input
+            type="text"
+            placeholder="Email"
+            required
+            v-model="newUser.email"
+          />
+          <input
+            type="text"
+            placeholder="Password"
+            required
+            v-model="newUser.password"
+          />
+          <select v-model="newUser.role" required>
+            <option value="admin">Admin</option>
+            <option value="member">Member</option>
+          </select>
           <button class="contrast">Créer</button>
         </form>
-        <h1>Utilisateur existant</h1>
+        <h1>Utilisateurs existants</h1>
         <table>
           <thead>
             <tr>
@@ -37,83 +82,328 @@
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Action</th>
+              <th scope="col">Role</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in users">
+            <tr v-for="user in users" :key="user._id">
               <td>{{ user._id }}</td>
               <td>{{ user.name }}</td>
               <td>{{ user.email }}</td>
-              <td><button @click="remove(user._id)">Supprimer</button></td>
+              <td>{{ user.role }}</td>
+              <td><button @click="removeUser(user._id)">Supprimer</button></td>
             </tr>
           </tbody>
         </table>
+        <h1>Créer un article</h1>
+        <form @submit.prevent="createArticle">
+          <input
+            type="text"
+            placeholder="Title"
+            required
+            v-model="newArticle.title"
+          />
+          <textarea
+            placeholder="Content"
+            required
+            v-model="newArticle.content"
+          ></textarea>
+          <select v-model="newArticle.status">
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+          <button class="contrast">Créer</button>
+        </form>
+        <h1>Articles existants</h1>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Title</th>
+              <th scope="col">Content</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="article in articles" :key="article._id">
+              <td>{{ article._id }}</td>
+              <td>{{ article.title }}</td>
+              <td>{{ article.content }}</td>
+              <td>{{ article.status }}</td>
+              <td>
+                <button @click="editArticle(article)">Modifier</button>
+              </td>
+
+              <td>
+                <button @click="removeArticle(article._id)">Supprimer</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h1 v-if="editingArticle">Modifier l'article</h1>
+        <form v-if="editingArticle" @submit.prevent="updateArticle">
+          <input
+            type="text"
+            placeholder="Title"
+            required
+            v-model="editingArticle.title"
+          />
+          <textarea
+            placeholder="Content"
+            required
+            v-model="editingArticle.content"
+          ></textarea>
+          <select v-model="editingArticle.status">
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+          <button class="contrast">Mettre à jour</button>
+        </form>
       </article>
+      
     </main>
   </body>
+  <script>
+    const { createApp } = Vue;
 
-<script>
-const { createApp } = Vue
+    const socket = io();
 
-const socket = io()
+    createApp({
+      data() {
+        return {
+          layout: "login",
+          email: "",
+          password: "",
+          users: [],
+          newUser: {
+            name: "",
+            email: "",
+            password: "",
+            role: "member",
+          },
+          articles: [],
+          newArticle: {
+            title: "",
+            content: "",
+            status: "draft",
+          },
+          userToken: "",
+          editingArticle: null,
+          loggedInUserId: null, // Ajout de loggedInUserId
+        };
+      },
+      mounted() {
+        this.load();
+        this.setupSocketListeners();
+      },
+      methods: {
+        async login() {
+          try {
+            const response = await axios.post("/login", {
+              email: this.email,
+              password: this.password,
+            });
+            const token = response.data.token;
+            localStorage.setItem("token", token);
+            this.userToken = token;
+            this.layout = "list";
+            this.load();
+          } catch (error) {
+            console.error("Login error:", error);
+          }
+        },
 
-createApp({
-  data() {
-    return {
-      layout: 'login',
-      email: '',
-      password: '',
-      users: [],
-      newUser: {},
-      userToken: ''
+        async updateArticle() {
+          try {
+            // Vérifiez si l'utilisateur est un administrateur avant de permettre la modification
+            if (!this.isAdmin()) {
+              alert("Vous n'êtes pas autorisé à modifier cet article.");
+              return;
+            }
+
+            // Envoie de la requête PUT pour mettre à jour l'article
+            const response = await axios.put(
+              `/api/articles/${this.editingArticle._id}`,
+              this.editingArticle,
+              {
+                headers: {
+                  "x-access-token": this.userToken,
+                },
+              }
+            );
+
+            // Mettre à jour localement l'article modifié
+            const updatedArticleIndex = this.articles.findIndex(
+              (article) => article._id === this.editingArticle._id
+            );
+            if (updatedArticleIndex !== -1) {
+              this.articles[updatedArticleIndex] = response.data;
+            }
+
+            // Réinitialisez la variable editingArticle pour cacher le formulaire de modification
+            this.editingArticle = null;
+          } catch (error) {
+            console.error("Update article error:", error);
+          }
+        },
+        editArticle(article) {
+          // Vérifiez si l'utilisateur est un administrateur avant de permettre la modification
+          if (this.isAdmin()) {
+            // Affectez l'article en cours d'édition à la variable editingArticle pour afficher le formulaire de modification
+            this.editingArticle = article;
+          } else {
+            alert("Vous n'êtes pas autorisé à modifier cet article.");
+          }
+        },
+        isAdmin() {
+          // Vérifiez si l'utilisateur actuel est un administrateur
+          return this.users.some((user) => user.role === "admin");
+        },
+
+        async load() {
+          try {
+            this.userToken = localStorage.getItem("token");
+            if (this.userToken) {
+              const usersResponse = await axios.get("/api/users", {
+                headers: {
+                  "x-access-token": this.userToken,
+                },
+              });
+              this.users = usersResponse.data;
+
+              // Récupérer uniquement les articles de l'utilisateur connecté
+              const articlesResponse = await axios.get("/api/articles", {
+                headers: {
+                  "x-access-token": this.userToken,
+                },
+              });
+              this.loggedInUserId = this.users.find(
+              (user) => user.email === this.email
+            )?._id;
+              // Mettre à jour la liste des articles avec les données récupérées
+              this.articles = articlesResponse.data.filter(
+              (article) => article.createdBy === this.loggedInUserId
+            );
+            }
+          } catch (error) {
+            console.error("Load error:", error);
+          }
+        },
+        setupSocketListeners() {
+          socket.on("user:create", (data) => {
+            if (!this.users.find((user) => user._id === data._id)) {
+              this.users.push(data);
+            }
+          });
+
+          socket.on("user:delete", (data) => {
+            this.users = this.users.filter((user) => user._id != data.id);
+          });
+
+          socket.on("article:create", (data) => {
+            if (!this.articles.find((article) => article._id === data._id)) {
+              this.articles.push(data);
+            }
+          });
+
+          socket.on("article:delete", (data) => {
+            this.articles = this.articles.filter(
+              (article) => article._id != data.id
+            );
+          });
+        },
+        async createUser() {
+          try {
+            await axios.post("/api/users", this.newUser, {
+              headers: {
+                "x-access-token": this.userToken,
+              },
+            });
+            this.newUser.name = "";
+            this.newUser.email = "";
+            this.newUser.password = "";
+            this.newUser.role = "member"; // Réinitialiser le champ de rôle après création
+          } catch (error) {
+            console.error("Create user error:", error);
+          }
+        },
+        async removeUser(userId) {
+          try {
+            await axios.delete(`/api/users/${userId}`, {
+              headers: {
+                "x-access-token": this.userToken,
+              },
+            });
+          } catch (error) {
+            console.error("Remove user error:", error);
+          }
+        },
+        async createArticle() {
+          try {
+            await axios.post("/api/articles", this.newArticle, {
+              headers: {
+                "x-access-token": this.userToken,
+              },
+            });
+            this.newArticle.title = "";
+            this.newArticle.content = "";
+            this.newArticle.status = "draft"; // Réinitialiser le champ de statut après création
+          } catch (error) {
+            console.error("Create article error:", error);
+          }
+        },
+        async removeArticle(articleId) {
+          try {
+            await axios.delete(`/api/articles/${articleId}`, {
+              headers: {
+                "x-access-token": this.userToken,
+              },
+            });
+            // Mettre à jour la liste des articles localement
+            this.articles = this.articles.filter(
+              (article) => article._id !== articleId
+            );
+          } catch (error) {
+            console.error("Remove article error:", error);
+          }
+        },
+      },
+    }).mount("#app");
+  </script>
+   <script>
+    // Exemple de requête AJAX pour récupérer les articles d'un utilisateur spécifique
+    async function fetchArticles(userId) {
+        try {
+            const response = await fetch(`/api/users/${userId}/articles`);
+            if (!response.ok) {
+                throw new Error('Erreur lors de la récupération des articles');
+            }
+            const articles = await response.json();
+            displayArticles(articles);
+        } catch (error) {
+            console.error('Erreur:', error.message);
+        }
     }
-  },
-  mounted() {
-    this.load()
-  },
-  methods: {
-    async login() {
-      const { token } = await axios.post('/login', {
-        email: this.email,
-        password: this.password
-      }).then(res => res.data)
-      localStorage.setItem('token', token)
-      this.load()
-    },
-    async load() {
-      this.userToken = localStorage.getItem('token')
-      if (this.userToken) {
-        this.layout = 'list'
-        const users = await axios.get('/api/users', {
-          headers: {
-            'x-access-token': this.userToken
-          }
-        }).then(res => res.data)
-        this.users = users
-      }
 
-      socket.on('user:create', (data) => {
-        this.users.push(data)
-      })
+    // Fonction pour afficher les articles dans le DOM
+    function displayArticles(articles) {
+        const articlesContainer = document.getElementById('articles-container');
+        articlesContainer.innerHTML = ''; // Effacer le contenu précédent
 
-      socket.on('user:delete', (data) => {
-        this.users = this.users.filter(user => user._id != data.id)
-      })
-    },
-    async remove(userId) {
-      await axios.delete('/api/users/' + userId, {
-          headers: {
-            'x-access-token': this.userToken
-          }
-      })
-    },
-    async create() {
-      await axios.post('/api/users', this.newUser, {
-          headers: {
-            'x-access-token': this.userToken
-          }
-      }).then(res => res.data)
+        articles.forEach(article => {
+            const articleElement = document.createElement('div');
+            articleElement.classList.add('article');
+            articleElement.innerHTML = `
+                <h2>${article.title}</h2>
+                <p>${article.content}</p>
+                <p>Author: ${article.user.name}</p>
+                <hr>
+            `;
+            articlesContainer.appendChild(articleElement);
+        });
     }
-  }
-}).mount('#app')
+
+    // Appel de la fonction pour récupérer les articles au chargement de la page
+    fetchArticles('66684c2214d932e81d765e9d'); // Remplacez par l'ID de l'utilisateur souhaité
 </script>
+</html>
